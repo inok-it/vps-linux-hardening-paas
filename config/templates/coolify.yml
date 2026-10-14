@@ -1,0 +1,19 @@
+title: "{{if .success}}✅{{else}}⚠{{end}} Coolify: {{if .project_name}}{{.project_name}} - {{end}}{{.event}}"
+message: |
+  {{if .message}}{{.message}}{{end}}{{if .status}}
+  📊 Status: {{.status}}{{end}}{{if .project_name}}
+  📁 Project: {{.project_name}}{{end}}{{if .environment_name}}
+  🌱 Environment: {{.environment_name}}{{end}}{{if .application_name}}
+  📦 Application: {{.application_name}}{{end}}{{if .database_name}}
+  🗄 Database: {{.database_name}}{{end}}{{if .server_name}}
+  🖥 Server: {{.server_name}}{{end}}{{if .container_name}}
+  🐳 Container: {{.container_name}}{{end}}{{if .fqdn}}
+  🌐 Domain: {{.fqdn}}{{end}}{{if .task_name}}
+  ⏱ Task: {{.task_name}}{{end}}{{if .disk_usage}}
+  💾 Disk usage: {{.disk_usage}}% (Threshold: {{.threshold}}%){{end}}{{if .total_updates}}
+  🔄 Updates: {{.total_updates}} (Critical: {{.critical_packages_count}}){{end}}{{if .affected_servers_count}}
+  ⚠ Outdated Traefik: {{.affected_servers_count}} servers {{end}}{{if .error_message}}
+  ❌ Error: {{.error_message}}{{end}}{{if .error_output}}
+  📜 Error log: {{.error_output}}{{end}}{{if .deployment_url}}
+  🚀 Deployment: {{.deployment_url}}{{end}}{{if .url}}
+  🔗 Link: {{.url}}{{end}}

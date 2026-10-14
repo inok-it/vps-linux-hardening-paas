@@ -46,6 +46,6 @@ Detailed deployment and configuration guides are located in the `/docs` director
 1. [Security & Hardening](docs/01-security-hardening.md) - Firewall rules (UFW), Fail2Ban implementation, SSH hardening (disabling root login, password auth), and kernel network tweaks
 2. [Coolify PaaS Setup](02-coolify-paas-setup.md) - Container engine installation, secure networking, Traefik reverse proxy configuration, and Coolify deployment.
 3. [Monitoring & Alerts](docs/03-monitoring-alerts.md) - Real-time container log aggregation (Dozzle), up time monitoring (Uptime Kuma), and critical system push notifications (ntfy).
-4. [Backup & Disaster Recovery](docs/04-backup-policy.md) - Automated, encrypted off-site database and configuration backups to Cloudflare R2 using cron jobs.
+4. [Backup & Disaster Recovery](04-backup-recovery-policy.md) - Automated, encrypted off-site database and configuration backups to Cloudflare R2 using cron jobs.
 5. [DNS & Traffic Routing](docs/05-dns-and-traffic-routing.md) - Cloudflare Edge configuration, WAF custom rules, rate limiting, and origin traffic filtering.
 6. [Routine Maintenance & Cheatsheet](docs/06-routine-maintenance.md) - Essential commands for troubleshooting, system updates, and resource management.

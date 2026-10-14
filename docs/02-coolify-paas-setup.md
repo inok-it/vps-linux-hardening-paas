@@ -100,7 +100,8 @@ Lock down the Coolify dashboard against unauthorized access and telemetry, and f
 
 ##### **Rationale:**
 
-**Disable Registration:** Coolify is designed for teams, but also allows open registration by default. On a public-facing server, leaving this enabled is a massive security risk, essentially offering free compute resources to crypto-miners or attackers.
+**Disable Registration:** 
+Coolify is designed for teams, but also allows open registration by default. On a public-facing server, leaving this enabled is a massive security risk, essentially offering free compute resources to crypto-miners or attackers.
 
 ## 2.4 Docker Network Isolation & Final UFW Cleanup
 
@@ -160,11 +161,14 @@ sudo ufw status
 
 ##### **Rationale:**
 
-**Order of Operations (Firewall):** We explicitly delay closing port 8000 until SSL is provisioned. Traefik requires DNS propagation to validate the Let's Encrypt certificate. If we closed port 8000 too early and the SSL challenge failed, we would be locked out of the UI.
+**Order of Operations (Firewall):** 
+We explicitly delay closing port 8000 until SSL is provisioned. Traefik requires DNS propagation to validate the Let's Encrypt certificate. If we closed port 8000 too early and the SSL challenge failed, we would be locked out of the UI.
  
-**The Docker iptables Bypass:** By default, when Docker exposes a port, it adds permissive rules to `iptables` that evaluate _before_ UFW's deny rules. If a container is bound to `0.0.0.0` (all interfaces), closing the port in UFW will **not** block public traffic. Binding strictly to `127.0.0.1` is a mandatory architectural security measure.
+**The Docker iptables Bypass:** 
+By default, when Docker exposes a port, it adds permissive rules to `iptables` that evaluate _before_ UFW's deny rules. If a container is bound to `0.0.0.0` (all interfaces), closing the port in UFW will **not** block public traffic. Binding strictly to `127.0.0.1` is a mandatory architectural security measure.
 
-**`docker-compose.override.yml`:** Docker Compose natively supports reading an `.override.yml` file. This allows administrators to customize deployments (like port bindings, resource limits, or volumes) while keeping the main `docker-compose.yml` clean for safe automated updates from the upstream developers.
+**`docker-compose.override.yml`:** 
+Docker Compose natively supports reading an `.override.yml` file. This allows administrators to customize deployments (like port bindings, resource limits, or volumes) while keeping the main `docker-compose.yml` clean for safe automated updates from the upstream developers.
 
 ## 2.5 Redis Memory Management
 
@@ -207,6 +211,91 @@ docker ps | grep redis
 
 ##### **Rationale:**
 
-**How Redis Saves Data:** Redis operates entirely in RAM. To save data to the disk, it "forks" its own process. The Linux kernel normally checks if there is enough free RAM to completely duplicate the process. If you have a 2GB Redis instance and only 1GB of free RAM left on the server, the kernel will block the save, even though Redis doesn't actually need 2GB of _new_ RAM (it shares the memory pages).
+**How Redis Saves Data:** 
+Redis operates entirely in RAM. To save data to the disk, it "forks" its own process. The Linux kernel normally checks if there is enough free RAM to completely duplicate the process. If you have a 2GB Redis instance and only 1GB of free RAM left on the server, the kernel will block the save, even though Redis doesn't actually need 2GB of _new_ RAM (it shares the memory pages).
 
-**`overcommit_memory = 1`:** This setting tells the Linux kernel to always pretend there is enough memory and allow the fork. This prevents fatal background save failures, which is critical for maintaining database integrity in a PaaS environment.
+**`overcommit_memory = 1`:** 
+This setting tells the Linux kernel to always pretend there is enough memory and allow the fork. This prevents fatal background save failures, which is critical for maintaining database integrity in a PaaS environment.
+
+## 2.6 Docker Cleanup & Panel Updates
+
+##### **Objective:** 
+Configure automated cron jobs within the Coolify dashboard to proactively manage disk space by purging unused container data, and keep the PaaS control panel securely up to date without manual intervention.
+
+##### **Action:**
+
+###### **Step 1: Automated Docker Cleanup** 
+Over time, frequent application deployments leave behind unused Docker images, old network configurations, and build caches that can exhaust your server's storage.
+
+1. In the Coolify dashboard, navigate to **Servers** ➔ **localhost** (or your primary server name).
+2. Go to the **Settings** tab and locate the **Docker Cleanup** section.
+3. Ensure the feature is enabled and set the **Frequency (Cron)** to run daily at midnight:
+
+```Plaintext
+0 0 * * *
+```
+
+###### **Step 2: Automated Coolify Updates**
+Keep the PaaS control panel patched with the latest features and security fixes.
+
+1. In the main left sidebar, navigate to **Settings** ➔ **Updates**.
+2. Toggle **Automatic updates** to **Enabled**. 
+3. Set the **Check Frequency (Cron)** to midnight:
+
+```Plaintext
+0 0 * * *
+```
+
+4. Set the **Update Frequency (Cron)** to execute one hour later, at 1:00 AM:
+```Plaintext
+0 1 * * *
+```
+
+##### **Rationale:**
+**Preventing Disk Exhaustion:** 
+Running out of disk space (`No space left on device`) is fatal for database containers (like PostgreSQL or MariaDB) and often leads to unrecoverable data corruption. The nightly Docker cleanup acts as a scheduled `docker system prune`, ensuring old deployment artifacts are safely discarded.
+
+**Zero Downtime Updates:** 
+It is important to know that updating Coolify _only_ restarts the control panel containers. It does **not** stop, restart, or affect your clients' deployed websites, applications, or databases. They remain online and securely routed via Traefik during the panel update.
+
+**Staggered Maintenance Windows:** 
+By scheduling Coolify updates at 1:00 AM, we intentionally avoid overlapping with the underlying host OS automated security patches (which we previously configured via `unattended-upgrades` to run at 6:00 AM). Staggering these tasks prevents extreme CPU/IO spikes and makes debugging much easier if an alert triggers overnight.
+
+## 2.7 Source Control Integration: GitHub App
+
+##### **Objective:** 
+Securely connect Coolify to your GitHub account or organization using a dedicated GitHub App. This enables automated CI/CD pipelines (deploying code when you push to a branch) without relying on fragile Personal Access Tokens (PATs) or static SSH keys.
+##### **Action:**
+
+###### **Step 1: Initiate the Integration**
+1. In the Coolify dashboard, navigate to **Sources** on the left menu.
+2. Click the **+ Add** button and select **GitHub App**.
+
+###### **Step 2: App Configuration**
+1. **Name:** Enter a friendly identifier for this connection (e.g., `Inogi GitHub`).
+2. **Organization (Optional):** If you are linking a GitHub Organization rather than a personal account, enter the exact GitHub organization name here.
+###### **Step 3: GitHub Registration Wizard**
+
+1. Click the **Register Now** button.
+2. Coolify will securely redirect you to GitHub. Log in if prompted.
+3. You will be asked to install the new Coolify App into your GitHub account/organization.
+###### **Step 4: Grant Permissions (Least Privilege)**
+
+During the GitHub installation wizard, you must choose which repositories Coolify can access:
+- _Recommended:_ Select **Only select repositories** and manually choose the projects you intend to host.
+- _Alternative:_ Select **All repositories** (only recommended if this is a strictly private, single-developer GitHub account).
+###### **Step 5: Finalize and Sync**
+
+1. Once authorized, GitHub will automatically redirect you back to the Coolify dashboard.
+2. Click **Save** on the Coolify page.
+3. The page will reload. Verify that your GitHub repositories are now successfully listed and ready for deployment.
+
+##### **Rationale:**
+**Why a GitHub App?** 
+Older CI/CD methods relied on generating a Personal Access Token (PAT) or SSH key and pasting it into the server. If that token was compromised, the attacker gained access to your entire GitHub account. A GitHub App restricts access _only_ to the repositories you explicitly select, and its keys are managed securely via OAuth.
+
+**Webhook Automation:** 
+The GitHub App automatically configures webhooks for you. When you run `git push` on your local machine, GitHub instantly pings the Coolify App, triggering a zero-downtime rebuild of your container on the server automatically.
+
+**Principle of Least Privilege:** 
+By selecting specific repositories instead of "All repositories," you ensure that even if the PaaS environment is fully compromised, attackers cannot read or modify the source code of your other, unrelated projects.

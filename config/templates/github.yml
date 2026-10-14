@@ -1,0 +1,9 @@
+title: "{{if .zen}}Ping{{else}}🚨 {{.repository.name}}{{end}}"
+message: |
+  {{if .zen}}Zen: {{.zen}}
+  From: {{.sender.login}}{{end}}{{if .alert}}🎬 {{.action}}
+  📦 {{.repository.full_name}}{{if .alert.security_vulnerability}}
+  🧩 {{.alert.security_vulnerability.package.name}}{{end}}{{if .alert.security_advisory}}
+  🔥 {{.alert.security_advisory.severity}}
+  🐛 {{.alert.security_advisory.cve_id}}{{end}}{{if .alert.html_url}}
+  🔗 {{.alert.html_url}}{{end}}{{end}}
