@@ -1,0 +1,13 @@
+---
+admin_user: inok
+ansible_user: "{{ admin_user }}"
+ansible_ssh_private_key_file: ~/.ssh/rasberry_pi_4
+admin_ssh_public_key: "{{ lookup('file', '~/.ssh/rasberry_pi_4.pub') }}"
+timezone: 'Europe/Warsaw'
+base_packages:
+  - curl
+  - wget
+  - unattended-upgrades
+  - fail2ban
+swap_size: 2048
+swap_mount: /swapfile

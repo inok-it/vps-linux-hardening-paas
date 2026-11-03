@@ -1,0 +1,150 @@
+---
+- name: Complete system provisioning
+  hosts: servers_group
+  become: true
+
+  tasks:
+    - name: OS release pinning to LTS
+      ansible.builtin.lineinfile:
+        path: /etc/update-manager/release-upgrades
+        regexp: '^Prompt='
+        line: 'Prompt=never'
+        state: present
+        backrefs: false
+
+    - name: OS Update
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 600
+
+    - name: Check is system need to reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_file
+
+    - name: Reboot OS if needed
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: reboot_file.stat.exists
+
+    - name: Installing necessary tools
+      ansible.builtin.apt:
+        name: "{{ base_packages }}"
+        state: present
+
+    - name: Timezone set up
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: Autoremove packages
+      ansible.builtin.apt:
+        autoremove: true
+
+    - name: Current swap check
+      ansible.builtin.command:
+        cmd: swapon --show
+      register: current_swap
+      changed_when: false
+      check_mode: false
+
+    - name: Create swap file
+      ansible.builtin.command:
+        cmd: "dd if=/dev/zero of={{ swap_mount }} bs=1M count={{ swap_size }} status=none"
+        creates: "{{ swap_mount }}"
+      when: swap_mount not in current_swap.stdout
+
+    - name: Set swap permissions
+      ansible.builtin.file:
+        path: "{{ swap_mount }}"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Check whether swap file is formatted
+      ansible.builtin.command:
+        cmd: "blkid -p -s TYPE -o value {{ swap_mount }}"
+      register: swap_type
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: swap_mount not in current_swap.stdout
+
+    - name: Format the file as swap space
+      ansible.builtin.command:
+        cmd: "mkswap {{ swap_mount }}"
+      when:
+        - swap_mount not in current_swap.stdout
+        - swap_type.stdout != 'swap'
+      changed_when: true
+
+    - name: Enable the swap file
+      ansible.builtin.command:
+        cmd: "swapon {{ swap_mount }}"
+      when: swap_mount not in current_swap.stdout
+      changed_when: true
+
+    - name: Add swap file to fstab
+      ansible.posix.mount:
+        path: none
+        src: "{{ swap_mount }}"
+        fstype: swap
+        opts: sw
+        state: present
+
+    - name: Create dir
+      ansible.builtin.file:
+        path: /etc/systemd/system/apt-daily-upgrade.timer.d
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+
+    - name: Create schedule
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Timer]
+          OnCalendar=
+          OnCalendar=*-*-* 06:00:00
+          RandomizedDelaySec=10m
+          Persistent=true
+      notify: Reload daemon
+
+    - name: Ensure apt-daily-upgrade timer is enabled and running
+      ansible.builtin.systemd_service:
+        name: apt-daily-upgrade.timer
+        enabled: true
+        state: started
+
+    - name: Enable automatic updates
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+
+    - name: Configure unattended upgrades
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/52unattended-upgrades-local
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+          Unattended-Upgrade::Automatic-Reboot "false";
+
+  handlers:
+    - name: Reload daemon
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+        state: restarted
+        name: apt-daily-upgrade.timer
