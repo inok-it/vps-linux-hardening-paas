@@ -1,0 +1,11 @@
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 172.16.0.0/12 10.0.0.0/8 {{ ignored_ips_by_fail2ban | default('') }}
+
+[sshd]
+enabled = true
+port = {{ custom_ssh_port }}
+filter = sshd
+maxretry = 3
+bantime = 1h
+findtime = 10m
+backend = systemd

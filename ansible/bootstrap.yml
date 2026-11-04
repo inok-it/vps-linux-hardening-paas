@@ -3,7 +3,7 @@
   hosts: servers_group
   become: true
   vars:
-    ansible_user: ubuntu
+    ansible_user: "{{ default_account }}"
     ansible_port: 22
 
   tasks:

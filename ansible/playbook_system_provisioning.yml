@@ -2,6 +2,25 @@
 - name: Complete system provisioning
   hosts: servers_group
   become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Detect active SSH port
+      block:
+        - name: Probe custom SSH port from control node
+          ansible.builtin.wait_for:
+            host: "{{ ansible_host | default(inventory_hostname) }}"
+            port: "{{ custom_ssh_port }}"
+            state: started
+            timeout: 3
+          delegate_to: localhost
+          become: false
+          check_mode: false
+      rescue:
+        - name: Fallback to default SSH port 22
+          ansible.builtin.set_fact:
+            ansible_port: 22
+    - name: Gather system facts
+      ansible.builtin.setup:
 
   tasks:
     - name: OS release pinning to LTS

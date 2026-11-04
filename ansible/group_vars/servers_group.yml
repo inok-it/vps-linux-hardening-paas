@@ -2,7 +2,10 @@
 admin_user: inok
 ansible_user: "{{ admin_user }}"
 ansible_ssh_private_key_file: ~/.ssh/rasberry_pi_4
+custom_ssh_port: 60022
+ansible_port: "{{ custom_ssh_port }}"
 admin_ssh_public_key: "{{ lookup('file', '~/.ssh/rasberry_pi_4.pub') }}"
+default_account: ubuntu
 timezone: 'Europe/Warsaw'
 base_packages:
   - curl
@@ -11,3 +14,7 @@ base_packages:
   - fail2ban
 swap_size: 2048
 swap_mount: /swapfile
+banner_destinations:
+  - /etc/issue
+  - /etc/issue.net
+ignored_ips_by_fail2ban: 192.168.1.0/24

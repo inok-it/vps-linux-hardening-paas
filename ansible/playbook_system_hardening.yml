@@ -1,0 +1,208 @@
+---
+- name: System hardening
+  become: true
+  hosts: servers_group
+  gather_facts: false
+
+  pre_tasks:
+    - name: Detect active SSH port
+      block:
+        - name: Probe custom SSH port from control node
+          ansible.builtin.wait_for:
+            host: "{{ ansible_host | default(inventory_hostname) }}"
+            port: "{{ custom_ssh_port }}"
+            state: started
+            timeout: 3
+          delegate_to: localhost
+          become: false
+          check_mode: false
+      rescue:
+        - name: Fallback to default SSH port 22
+          ansible.builtin.set_fact:
+            ansible_port: 22
+    - name: Gather system facts
+      ansible.builtin.setup:
+
+  tasks:
+    - name: Expire and lock default user
+      ansible.builtin.user:
+        name: "{{ default_account }}"
+        expires: 1
+        groups: ""
+        append: false
+        shell: /usr/sbin/nologin
+        password_lock: true
+
+    - name: Remove cloud-init sudoers file
+      ansible.builtin.file:
+        path: /etc/sudoers.d/90-cloud-init-users
+        state: absent
+
+    - name: Fail2Ban Config
+      ansible.builtin.template:
+        src: fail2ban_jail.conf.j2
+        dest: /etc/fail2ban/jail.local
+        mode: "0600"
+        owner: root
+        group: root
+      notify: Restart fail2ban
+
+    - name: Enable fail2ban and running
+      ansible.builtin.systemd_service:
+        name: fail2ban.service
+        enabled: true
+        state: started
+
+    - name: Kernel Module Hardening
+      ansible.builtin.copy:
+        content: |
+          install dccp /bin/true
+          install sctp /bin/true
+          install rds /bin/true
+          install tipc /bin/true
+        dest: /etc/modprobe.d/blacklist-rare-protocols.conf
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Disable Core dumps
+      ansible.builtin.copy:
+        dest: /etc/security/limits.d/99-disable-coredumps.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          * hard core 0
+
+    - name: Restrict assembler compiler
+      ansible.builtin.shell: |
+        if dpkg-statoverride --list /usr/bin/as | grep -q .; then
+          dpkg-statoverride --remove /usr/bin/as
+        fi
+
+        dpkg-statoverride --add root root 0700 /usr/bin/as
+        chmod 0700 /usr/bin/as
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Kernel Network & Sysctl Hardening
+      ansible.builtin.template:
+        src: sysctl_hardening.conf.j2
+        dest: /etc/sysctl.d/99-security.conf
+        mode: "0600"
+        owner: root
+        group: root
+      notify: Apply kernel parameters
+
+    - name: Securing Shared Memory
+      ansible.posix.mount:
+        path: /dev/shm
+        src: tmpfs
+        fstype: tmpfs
+        opts: defaults,noexec,nosuid,nodev
+        state: mounted
+
+    - name: Configure UFW
+      block:
+        - name: Allow SSH on custom port
+          community.general.ufw:
+            rule: allow
+            port: "{{ custom_ssh_port }}"
+            proto: tcp
+
+        - name: Allow Web ports
+          community.general.ufw:
+            rule: allow
+            port: "{{ item }}"
+            proto: tcp
+          loop:
+            - "80"
+            - "443"
+
+        - name: Set outgoing policy to allow
+          community.general.ufw:
+            direction: outgoing
+            default: allow
+
+        - name: Set incoming policy to deny
+          community.general.ufw:
+            direction: incoming
+            state: enabled
+            default: deny
+
+    - name: SSH config
+      block:
+        - name: SSH warning banner
+          ansible.builtin.copy:
+            mode: "0644"
+            owner: root
+            group: root
+            dest: "{{ item }}"
+            content: |
+              Authorized uses only. All activity may be monitored and reported.
+          loop: "{{ banner_destinations }}"
+
+        - name: Deploy SSH hardening drop-in
+          ansible.builtin.template:
+            src: sshd_hardening.conf.j2
+            dest: /etc/ssh/sshd_config.d/00-hardening.conf
+            mode: "0600"
+            owner: root
+            group: root
+            validate: /usr/sbin/sshd -t -f %s
+          notify: Apply SSH configuration
+
+        - name: Create drop-in directory for ssh.socket
+          ansible.builtin.file:
+            path: /etc/systemd/system/ssh.socket.d
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Configure custom port for ssh.socket
+          ansible.builtin.copy:
+            dest: /etc/systemd/system/ssh.socket.d/override_ssh_port.conf
+            owner: root
+            group: root
+            mode: "0644"
+            content: |
+              [Socket]
+              ListenStream=
+              ListenStream=0.0.0.0:{{ custom_ssh_port }}
+              ListenStream=[::]:{{ custom_ssh_port }}
+          notify: Apply SSH configuration
+
+        - name: Disable default ssh port
+          ansible.builtin.lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?\s*Port\s+22\b'
+            line: '#Port 22'
+            state: present
+            validate: /usr/sbin/sshd -t -f %s
+          notify: Apply SSH configuration
+
+  handlers:
+    - name: Reload systemd and restart ssh socket
+      ansible.builtin.systemd_service:
+        name: ssh.socket
+        daemon_reload: true
+        state: restarted
+      listen: Apply SSH configuration
+
+    - name: Restart ssh daemon
+      ansible.builtin.systemd_service:
+        name: ssh.service
+        state: restarted
+      listen: Apply SSH configuration
+
+    - name: Restart fail2ban
+      ansible.builtin.systemd_service:
+        name: fail2ban.service
+        state: restarted
+
+    - name: Apply kernel parameters
+      ansible.builtin.command:
+        cmd: sysctl --system
+      changed_when: true
