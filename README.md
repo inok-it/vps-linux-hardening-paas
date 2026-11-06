@@ -94,10 +94,10 @@ Detailed deployment and configuration guides are located in the `/docs` director
 
 0. [Server Provisioning](docs/00-server-provisioning.md) - Initial server setup, user creation, and fundamental OS configuration.
 1. [Security & Hardening](docs/01-security-hardening.md) - Firewall rules (UFW), Fail2Ban implementation, SSH hardening (disabling root login, password auth), and kernel network tweaks
-2. [Coolify PaaS Setup](02-coolify-paas-setup.md) - Container engine installation, secure networking, Traefik reverse proxy configuration, and Coolify deployment.
+2. [Coolify PaaS Setup](docs/02-coolify-paas-setup.md) - Container engine installation, secure networking, Traefik reverse proxy configuration, and Coolify deployment.
 3. [Monitoring & Alerts](docs/03-monitoring-alerts.md) - Real-time container log aggregation (Dozzle), uptime monitoring (Uptime Kuma), container update tracking (Diun), and critical system push notifications via a self-hosted Ntfy gateway.
-4. [Backup & Disaster Recovery](04-backup-recovery-policy.md) - Multi-tiered recovery strategies, from VM-level snapshots to automated, encrypted off-site database and configuration backups utilizing Cloudflare R2.
-5. [Edge Security & WAF](05-cloudflare-waf-security.md) - Cloudflare Edge configuration, WAF custom rules, rate limiting, and origin traffic filtering.
+4. [Backup & Disaster Recovery](docs/04-backup-recovery-policy.md) - Multi-tiered recovery strategies, from VM-level snapshots to automated, encrypted off-site database and configuration backups utilizing Cloudflare R2.
+5. [Edge Security & WAF](docs/05-cloudflare-waf-security.md) - Cloudflare Edge configuration, WAF custom rules, rate limiting, and origin traffic filtering.
 6. [Routine Maintenance & Cheatsheet](docs/06-routine-maintenance.md) - Routine maintenance, cheatsheets, essential commands for troubleshooting, system updates, and resource management.
 7. [Authentik SSO & Zero-Trust](docs/07-authentik-sso.md) -  Deployment of the Authentik Identity Provider, enforcement of YubiKey/FIDO2 MFA, and configuration of Traefik Forward-Auth to shield internal monitoring tools.
-8. [Security Audits & Incident Analysis](08-security-audits.md) - Automated security scoring (Lynis), rootkit detection (Rkhunter), binary integrity verification (Debsums), and live resource profiling.
+8. [Security Audits & Incident Analysis](docs/08-security-audits.md) - Automated security scoring (Lynis), rootkit detection (Rkhunter), binary integrity verification (Debsums), and live resource profiling.
