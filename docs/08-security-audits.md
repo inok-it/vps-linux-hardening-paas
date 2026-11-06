@@ -108,4 +108,4 @@ grep "Ban" /var/log/fail2ban.log | tail -n 20
 ```
 
 ##### **Rationale:**
-If you notice a sudden, massive spike in banned IPs from a specific subnet, you can proactively blacklist that entire CIDR range at the Cloudflare WAF level (from [`05-cloudflare-waf-security.md`](docs/05-cloudflare-waf-security.md)) or via UFW, stopping the traffic before it even reaches the Fail2Ban processing daemon.
+If you notice a sudden, massive spike in banned IPs from a specific subnet, you can proactively blacklist that entire CIDR range at the Cloudflare WAF level (from [`05-cloudflare-waf-security.md`](05-cloudflare-waf-security.md)) or via UFW, stopping the traffic before it even reaches the Fail2Ban processing daemon.
