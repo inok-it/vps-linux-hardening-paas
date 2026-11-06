@@ -6,7 +6,6 @@
 >  
 >  **`99-` (Loads Last):** For kernel parameters (`sysctl`), the *last* parsed directive overwrites previous ones. We use `99-` to ensure our custom security parameters overwrite any default Ubuntu network configurations (which are typically named things like `10-default.conf`).
 
-^13be47
 ## 1.1 Legal Warning Banner
 
 ##### **Objective:** 
@@ -25,7 +24,6 @@ echo "Authorized uses only. All activity may be monitored and reported." | sudo 
 While a text banner does not technically block automated brute-force attacks, it is a critical security compliance requirement. Displaying a clear, legally binding notification that the system is restricted and monitored removes the legal defense of "accidental" or "unaware" access, providing a foundation for prosecuting malicious actors.
 
 ## 1.2 SSH Port Modification
-^4814f5
 > [!IMPORTANT]
 > 
 > The SSH port is being changed to **60022**. You must remember this custom port for the upcoming UFW (Firewall) and Fail2Ban configuration steps. Failing to open this port in the firewall before logging out will lock you out of the server.
@@ -128,7 +126,7 @@ Moving away from port 22 does not stop targeted attacks, but it eliminates 99% o
 **Socket Activation:** 
 Ubuntu uses `systemd` sockets to spawn SSH instances dynamically. Modifying only `sshd_config` without updating the socket causes binding failures.
 ## 1.3 SSH Connection Hardening
-^34045e
+
 ##### **Objective:** 
 Apply strict cryptographic authentication, rate-limiting, session timeouts, and disable tunneling to thoroughly secure the SSH daemon.
 
@@ -321,7 +319,6 @@ Ensure the port opened here `60022` exactly matches the port you configured in t
 >**Docker & UFW Bypass Architecture:** 
 >Be aware that the Docker daemon manipulates `iptables` directly. This means Docker **bypasses UFW rules completely**. In our Coolify architecture, Traefik handles all routing securely through ports 80 and 443. However, if you ever manually spin up a container and publish a port to the host (e.g., `-p 3306:3306` for a database), it will be exposed to the public internet, completely ignoring the `ufw default deny` rule. Always route web traffic through Coolify/Traefik and never publish internal service ports directly to the host.
 
-^70640f
 ##### **Rationale:**
 **Deny by Default:** 
 The foundational principle of network security. Instead of trying to block bad traffic, we block _everything_ and only allow explicitly trusted protocols.
@@ -334,7 +331,6 @@ Required for Coolify and the Traefik reverse proxy to serve web applications and
 
 ## 1.6 Fail2Ban Configuration (Brute-Force Protection)
 
-^b575ff
 ##### **Objective:** 
 Deploy Fail2Ban to monitor authentication logs and automatically ban IP addresses that exhibit malicious behavior (e.g., repeated failed SSH logins), while safely whitelisting internal Docker networks and your trusted administrative IPs.
 

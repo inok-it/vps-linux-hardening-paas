@@ -178,7 +178,6 @@ The swap file acts as an extension of physical RAM and can temporarily hold sens
 
 ## 0.7 Automating Security Patches (Unattended Upgrades)
 
-^fde462
 ##### **Objective:** 
 Enable the automatic installation of critical security updates to minimize the vulnerability window (time-to-patch) and configure a predictable execution schedule (e.g., 6:00 AM) to avoid disrupting peak traffic.
 

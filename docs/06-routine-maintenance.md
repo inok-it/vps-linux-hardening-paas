@@ -8,7 +8,7 @@ This section contains daily operational commands for managing server access. All
 Regular daily login from your primary workstation. 
 
 ##### **Reference:** 
-[[01-security-hardening#^4814f5 | SSH Port Modification]] 
+[SSH Port modification](docs/01-security-hardening.md)
 We strictly use custom port `60022` and cryptographic keys. Password authentication is disabled.
 
 ```bash
@@ -96,7 +96,7 @@ scp -P 60022 -i ~/.ssh/your_key inok@<server_ip>:/home/inok/remote_backup.tar.gz
 Routine OS maintenance, applying non-critical updates, and auditing the automated security patch system. 
 
 ##### **Reference:** 
-[[00-server-provisioning#^fde462 | Automating Security Patches]]
+[Automating Security Patches](docs/00-server-provisioning.md)
 Recall that critical security updates are installed automatically every day at 6:00 AM via `unattended-upgrades`.
 
 ### 6.2.1 Manual System Updates and Cleanup
@@ -147,7 +147,7 @@ sudo tail -n 50 /var/log/unattended-upgrades/unattended-upgrades.log
 Monitoring automated bans and managing blocked IP addresses.
 
 ##### **Reference:** 
-[[01-security-hardening#^b575ff | Fail2Ban Configuration]] 
+[Fail2Ban Configuration](docs/01-security-hardening.md) 
 Remember that our custom `jail.local` is set to ban IPs for 1 hour after 3 failed attempts, while explicitly whitelisting internal Docker networks to keep Coolify applications running.
 
 ###### **1. Check global status and list active jails:
@@ -183,7 +183,7 @@ sudo tail -f /var/log/fail2ban.log
 Investigating who is logging in, or attempting to log in, to the server.
 
 ##### **Reference:** 
-[[01-security-hardening#^34045e | SSH Connection Hardening]]
+[SSH Connection Hardening](docs/01-security-hardening.md)
 We set `LogLevel VERBOSE` in our SSH config. When you view these logs, you will see not just the login attempt, but the exact cryptographic key fingerprint used.
 
 ###### **1. View the last 20 SSH daemon events:**
@@ -218,7 +218,6 @@ sudo grep -iE "failed|invalid|disconnected" /var/log/auth.log | tail -n 10
 Daily operations for the underlying container engine. While Coolify manages deployments via its UI, interacting directly with Docker is often required for debugging, reading states, or recovering from server-wide network changes.
 
 ##### **Reference:**
-[[01-security-hardening#^70640f | Uncomplicated Firewall (UFW)]] 
 Remember that Docker bypasses UFW. If you modify or spin up containers manually outside of Coolify, they might bypass your firewall rules.
 
 ### **6.3.1 Listing Containers
